@@ -26,7 +26,7 @@ RUN chmod -R 755 /app
 USER $APPLICATION_USER
 
 # Copying needed files
-COPY --from=build /appbuild/build/libs/KtorEasy*all.jar /app/KtorEasy.jar
+COPY --from=build /appbuild/build/libs/hero-server*.jar /app/hero-server.jar
 COPY --from=build /appbuild/resources/ /app/resources/
 WORKDIR /app
 
