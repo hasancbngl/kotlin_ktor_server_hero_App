@@ -1,9 +1,35 @@
-/*
-This command at the base of project where Dockerfile is present,which build from the above Dockerfile with the name ktor-docker. '.' signifies find the Dockerfile here
-*/
-docker build -t ktor-docker .
+# App Building phase --------
+FROM openjdk:8 AS build
 
-/*
-This command will have to run the above 'ktor-docker' with the name docker-ktor1 on port 8080
-*/
-docker run --name docker-ktor1 -p 8080:8080 ktor-docker
+RUN mkdir /appbuild
+COPY . /appbuild
+
+WORKDIR /appbuild
+
+RUN ./gradlew clean build
+# End App Building phase --------
+
+# Container setup --------
+FROM openjdk:8-jre-alpine
+
+# Creating user
+ENV APPLICATION_USER 1033
+RUN adduser -D -g '' $APPLICATION_USER
+
+# Giving permissions
+RUN mkdir /app
+RUN mkdir /app/resources
+RUN chown -R $APPLICATION_USER /app
+RUN chmod -R 755 /app
+
+# Setting user to use when running the image 
+USER $APPLICATION_USER
+
+# Copying needed files
+COPY --from=build /appbuild/build/libs/KtorEasy*all.jar /app/KtorEasy.jar
+COPY --from=build /appbuild/resources/ /app/resources/
+WORKDIR /app
+
+# Entrypoint definition
+CMD ["sh", "-c", "java -server -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -XX:InitialRAMFraction=2 -XX:MinRAMFraction=2 -XX:MaxRAMFraction=2 -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:+UseStringDeduplication -jar KtorEasy.jar"]
+# End Container setup --------
